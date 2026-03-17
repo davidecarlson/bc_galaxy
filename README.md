@@ -84,6 +84,7 @@ Create the shared Galaxy tree:
 ├── galaxy-rockylinux-9.6.sif
 ├── config/
 │   ├── dependency_resolvers_conf.xml
+│   ├── id_secret
 │   ├── shed_tool_conf.xml
 │   ├── tool_conf.xml
 │   └── tool_sheds_conf.xml
@@ -135,6 +136,17 @@ Place these files under `/gpfs/software/galaxy/config`.
 <dependency_resolvers>
     <conda auto_init="true" auto_install="true" prefix="/srv/galaxy/conda" />
 </dependency_resolvers>
+```
+
+`id_secret`
+
+- plain text file containing one long random secret on a single line
+- required at startup
+- example generator:
+
+```bash
+openssl rand -hex 32 > /gpfs/software/galaxy/config/id_secret
+chmod 600 /gpfs/software/galaxy/config/id_secret
 ```
 
 ## Install
@@ -245,11 +257,11 @@ Before reusing this app on another cluster, review:
 
 ## Security Notes
 
-Two settings should be changed before treating this as production-ready:
+Two settings should be reviewed before treating this as production-ready:
 
-- `id_secret` in
-  [`start-galaxy.sh`](/gpfs/home/decarlson/ondemand/dev/galaxy/start-galaxy.sh)
-  is still a placeholder and should be replaced with a persistent random secret.
+- `id_secret` is now read from
+  `/gpfs/software/galaxy/config/id_secret` and should be a persistent random
+  secret managed outside the repo.
 - `admin_users` in
   [`start-galaxy.sh`](/gpfs/home/decarlson/ondemand/dev/galaxy/start-galaxy.sh)
   should be set for your site.

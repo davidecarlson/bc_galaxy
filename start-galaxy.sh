@@ -17,6 +17,7 @@ export GALAXY_TOOL_DATA_PATH="${GALAXY_TOOL_DATA_PATH:-$GALAXY_RUNTIME_ROOT/data
 export GALAXY_FILE_SOURCES_CONFIG_FILE="${GALAXY_FILE_SOURCES_CONFIG_FILE:-$GALAXY_RUNTIME_ROOT/config/file_sources_conf.yml}"
 export GALAXY_USER_LIBRARY_IMPORT_DIR="${GALAXY_USER_LIBRARY_IMPORT_DIR:-$HOME}"
 export GALAXY_ALLOW_PATH_PASTE="${GALAXY_ALLOW_PATH_PASTE:-false}"
+export GALAXY_ID_SECRET_FILE="${GALAXY_ID_SECRET_FILE:-/srv/galaxy/config/id_secret}"
 export GALAXY_TOOL_SHEDS_CONFIG_FILE="${GALAXY_TOOL_SHEDS_CONFIG_FILE:-/opt/galaxy/config/tool_sheds_conf.xml.sample}"
 export GALAXY_DEPENDENCY_RESOLVERS_CONFIG_FILE="${GALAXY_DEPENDENCY_RESOLVERS_CONFIG_FILE:-}"
 export GALAXY_CONDA_PREFIX="${GALAXY_CONDA_PREFIX:-$GALAXY_RUNTIME_ROOT/conda}"
@@ -106,6 +107,17 @@ if [ "$GALAXY_ENABLE_PROJECTS_FILE_SOURCE" = "true" ]; then
 EOF
 fi
 
+if [ ! -r "$GALAXY_ID_SECRET_FILE" ]; then
+    echo "Galaxy id_secret file not found or not readable: $GALAXY_ID_SECRET_FILE" >&2
+    exit 1
+fi
+
+GALAXY_ID_SECRET=$(tr -d '\r\n' <"$GALAXY_ID_SECRET_FILE")
+if [ -z "$GALAXY_ID_SECRET" ]; then
+    echo "Galaxy id_secret file is empty: $GALAXY_ID_SECRET_FILE" >&2
+    exit 1
+fi
+
 # Rebuild the generated config on each start so OOD-assigned host/port changes
 # are reflected even when the runtime directory is persistent across sessions.
 cat >"$GALAXY_CONFIG_FILE" <<EOF
@@ -114,7 +126,7 @@ galaxy:
   admin_users: "david.carlson@stonybrook.edu"
   allow_user_creation: true
   user_activation_on: false
-  id_secret: "change-me-for-production"
+  id_secret: "${GALAXY_ID_SECRET}"
   root: "${GALAXY_ROOT_DIR}"
   galaxy_url_prefix: "${GALAXY_URL_PREFIX}"
   data_dir: "${GALAXY_RUNTIME_ROOT}/data"
