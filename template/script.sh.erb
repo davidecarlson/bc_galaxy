@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+module purge
+module load anaconda/3
+
+if command -v apptainer >/dev/null 2>&1; then
+  container_runtime="apptainer"
+elif command -v singularity >/dev/null 2>&1; then
+  container_runtime="singularity"
+else
+  echo "Neither apptainer nor singularity is available in PATH." >&2
+  exit 1
+fi
+
+IMAGE="/gpfs/software/galaxy/galaxy-rockylinux-9.6.sif"
+START_GALAXY_SCRIPT="/gpfs/home/decarlson/ondemand/dev/galaxy/start-galaxy.sh"
+
+# Admin-managed shared Galaxy tool locations. These defaults live in this repo
+# so the shared-tool layout can be managed centrally for all users.
+SHARED_GALAXY_ROOT="/gpfs/software/galaxy"
+SHARED_GALAXY_CONFIG_ROOT="${SHARED_GALAXY_ROOT}/config"
+SHARED_GALAXY_TOOLS_ROOT="${SHARED_GALAXY_ROOT}/tools"
+SHARED_GALAXY_SHED_TOOLS_ROOT="${SHARED_GALAXY_ROOT}/shed_tools"
+SHARED_GALAXY_TOOL_DATA_ROOT="${SHARED_GALAXY_ROOT}/tool-data"
+SHARED_GALAXY_CONDA_ROOT="${SHARED_GALAXY_ROOT}/conda"
+ANACONDA_ROOT="/gpfs/software/Anaconda"
+BIND_ARGS=()
+
+if [[ ! -f "${IMAGE}" ]]; then
+  echo "Galaxy container image not found: ${IMAGE}" >&2
+  exit 1
+fi
+if [[ ! -f "${START_GALAXY_SCRIPT}" ]]; then
+  echo "Galaxy startup script not found: ${START_GALAXY_SCRIPT}" >&2
+  exit 1
+fi
+if [[ ! -d "${SHARED_GALAXY_CONFIG_ROOT}" ]]; then
+  echo "Shared Galaxy config directory not found: ${SHARED_GALAXY_CONFIG_ROOT}" >&2
+  exit 1
+fi
+if [[ ! -d "${SHARED_GALAXY_TOOLS_ROOT}" ]]; then
+  echo "Shared Galaxy tools directory not found: ${SHARED_GALAXY_TOOLS_ROOT}" >&2
+  exit 1
+fi
+if [[ ! -d "${SHARED_GALAXY_SHED_TOOLS_ROOT}" ]]; then
+  echo "Shared Galaxy shed tools directory not found: ${SHARED_GALAXY_SHED_TOOLS_ROOT}" >&2
+  exit 1
+fi
+if [[ ! -d "${SHARED_GALAXY_TOOL_DATA_ROOT}" ]]; then
+  echo "Shared Galaxy tool-data directory not found: ${SHARED_GALAXY_TOOL_DATA_ROOT}" >&2
+  exit 1
+fi
+if [[ ! -x "${ANACONDA_ROOT}/bin/conda" ]]; then
+  echo "Anaconda conda executable not found: ${ANACONDA_ROOT}/bin/conda" >&2
+  exit 1
+fi
+mkdir -p "${SHARED_GALAXY_CONDA_ROOT}"
+
+if [[ -n "<%= context.galaxy_data_dir.to_s.strip %>" ]]; then
+  GALAXY_HOST_ROOT="<%= context.galaxy_data_dir.to_s.strip %>"
+else
+  GALAXY_HOST_ROOT="${HOME}/ondemand/data/galaxy"
+fi
+
+HOST_HOME="${HOME}"
+GALAXY_FILE_SOURCE_SELECTION="<%= context.galaxy_extra_file_sources.to_s.strip %>"
+
+mkdir -p "${GALAXY_HOST_ROOT}"
+
+export GALAXY_CONFIG_HOST="0.0.0.0"
+export GALAXY_CONFIG_PORT="${port}"
+export GALAXY_URL_PREFIX="/node/${host}/${port}"
+export GALAXY_RUNTIME_ROOT="/tmp/galaxy"
+export GALAXY_LOG_DIR="/tmp/galaxy/log"
+export GALAXY_PID_DIR="/tmp/galaxy/pids"
+export GALAXY_SLOTS="<%= context.num_cores.to_s.strip %>"
+export GALAXY_CONFIG_FILE="/tmp/galaxy/config/galaxy.yml"
+export GALAXY_TOOL_CONFIG_FILE="/srv/galaxy/config/tool_conf.xml,/opt/galaxy/config/tool_conf.xml.sample"
+export GALAXY_SHED_TOOL_CONFIG_FILE="/srv/galaxy/config/shed_tool_conf.xml"
+export GALAXY_SHED_TOOL_PATH="/srv/galaxy/shed_tools"
+export GALAXY_TOOL_DATA_PATH="/srv/galaxy/tool-data"
+export GALAXY_FILE_SOURCES_CONFIG_FILE="/tmp/galaxy/config/file_sources_conf.yml"
+export GALAXY_USER_LIBRARY_IMPORT_DIR="${HOST_HOME}"
+export GALAXY_ALLOW_PATH_PASTE="true"
+export GALAXY_TOOL_SHEDS_CONFIG_FILE="/srv/galaxy/config/tool_sheds_conf.xml"
+export GALAXY_DEPENDENCY_RESOLVERS_CONFIG_FILE="/srv/galaxy/config/dependency_resolvers_conf.xml"
+export GALAXY_CONDA_PREFIX="/srv/galaxy/conda"
+export GALAXY_CONDA_AUTO_INIT="true"
+export GALAXY_CONDA_AUTO_INSTALL="true"
+export GALAXY_CONDA_EXEC="${ANACONDA_ROOT}/bin/conda"
+export CONDA_ENVS_PATH="/srv/galaxy/conda/envs"
+export CONDA_PKGS_DIRS="/srv/galaxy/conda/pkgs"
+export GALAXY_SKIP_CLIENT_BUILD="1"
+export GIT_CONFIG_COUNT="1"
+export GIT_CONFIG_KEY_0="safe.directory"
+export GIT_CONFIG_VALUE_0="/opt/galaxy"
+
+mkdir -p "${SHARED_GALAXY_CONDA_ROOT}/envs" "${SHARED_GALAXY_CONDA_ROOT}/pkgs"
+ln -sfn "${ANACONDA_ROOT}/bin" "${SHARED_GALAXY_CONDA_ROOT}/bin"
+ln -sfn "${ANACONDA_ROOT}/condabin" "${SHARED_GALAXY_CONDA_ROOT}/condabin"
+ln -sfn "${ANACONDA_ROOT}/etc" "${SHARED_GALAXY_CONDA_ROOT}/etc"
+
+case "${GALAXY_FILE_SOURCE_SELECTION}" in
+  home_scratch)
+    export GALAXY_ENABLE_SCRATCH_FILE_SOURCE="true"
+    export GALAXY_ENABLE_PROJECTS_FILE_SOURCE="false"
+    ;;
+  home_projects)
+    export GALAXY_ENABLE_SCRATCH_FILE_SOURCE="false"
+    export GALAXY_ENABLE_PROJECTS_FILE_SOURCE="true"
+    ;;
+  home_scratch_projects)
+    export GALAXY_ENABLE_SCRATCH_FILE_SOURCE="true"
+    export GALAXY_ENABLE_PROJECTS_FILE_SOURCE="true"
+    ;;
+  *)
+    export GALAXY_ENABLE_SCRATCH_FILE_SOURCE="false"
+    export GALAXY_ENABLE_PROJECTS_FILE_SOURCE="false"
+    ;;
+esac
+
+for var in \
+  GALAXY_CONFIG_HOST \
+  GALAXY_CONFIG_PORT \
+  GALAXY_URL_PREFIX \
+  GALAXY_RUNTIME_ROOT \
+  GALAXY_LOG_DIR \
+  GALAXY_PID_DIR \
+  GALAXY_SLOTS \
+  GALAXY_CONFIG_FILE \
+  GALAXY_TOOL_CONFIG_FILE \
+  GALAXY_SHED_TOOL_CONFIG_FILE \
+  GALAXY_SHED_TOOL_PATH \
+  GALAXY_TOOL_DATA_PATH \
+  GALAXY_FILE_SOURCES_CONFIG_FILE \
+  GALAXY_USER_LIBRARY_IMPORT_DIR \
+  GALAXY_ALLOW_PATH_PASTE \
+  GALAXY_TOOL_SHEDS_CONFIG_FILE \
+  GALAXY_DEPENDENCY_RESOLVERS_CONFIG_FILE \
+  GALAXY_CONDA_PREFIX \
+  GALAXY_CONDA_AUTO_INIT \
+  GALAXY_CONDA_AUTO_INSTALL \
+  GALAXY_CONDA_EXEC \
+  CONDA_ENVS_PATH \
+  CONDA_PKGS_DIRS \
+  GALAXY_ENABLE_SCRATCH_FILE_SOURCE \
+  GALAXY_ENABLE_PROJECTS_FILE_SOURCE \
+  GALAXY_SKIP_CLIENT_BUILD \
+  GIT_CONFIG_COUNT \
+  GIT_CONFIG_KEY_0 \
+  GIT_CONFIG_VALUE_0; do
+  export "SINGULARITYENV_${var}=${!var}"
+  export "APPTAINERENV_${var}=${!var}"
+done
+
+BIND_ARGS+=("--bind" "${GALAXY_HOST_ROOT}:/tmp/galaxy")
+BIND_ARGS+=("--bind" "${HOST_HOME}:${HOST_HOME}")
+BIND_ARGS+=("--bind" "/gpfs:/gpfs")
+BIND_ARGS+=("--bind" "${START_GALAXY_SCRIPT}:/usr/local/bin/start-galaxy")
+BIND_ARGS+=("--bind" "${SHARED_GALAXY_CONFIG_ROOT}:/srv/galaxy/config")
+BIND_ARGS+=("--bind" "${SHARED_GALAXY_TOOLS_ROOT}:/srv/galaxy/tools")
+BIND_ARGS+=("--bind" "${SHARED_GALAXY_SHED_TOOLS_ROOT}:/srv/galaxy/shed_tools")
+BIND_ARGS+=("--bind" "${SHARED_GALAXY_TOOL_DATA_ROOT}:/srv/galaxy/tool-data")
+BIND_ARGS+=("--bind" "${SHARED_GALAXY_CONDA_ROOT}:/srv/galaxy/conda")
+BIND_ARGS+=("--bind" "${ANACONDA_ROOT}:${ANACONDA_ROOT}")
+
+echo "$(date): Running Galaxy on compute node $(hostname):${port}"
+echo "$(date): Using ${container_runtime} image ${IMAGE}"
+echo "$(date): Galaxy writable state is ${GALAXY_HOST_ROOT}"
+echo "$(date): Shared Galaxy config is ${SHARED_GALAXY_CONFIG_ROOT}"
+echo "$(date): Shared Galaxy tools are ${SHARED_GALAXY_TOOLS_ROOT}"
+echo "$(date): Shared Galaxy shed tools are ${SHARED_GALAXY_SHED_TOOLS_ROOT}"
+echo "$(date): Shared Galaxy tool-data is ${SHARED_GALAXY_TOOL_DATA_ROOT}"
+echo "$(date): Shared Galaxy conda is ${SHARED_GALAXY_CONDA_ROOT}"
+echo "$(date): Galaxy conda executable is ${GALAXY_CONDA_EXEC}"
+
+cd "${HOME}"
+set -x
+"${container_runtime}" run \
+  "${BIND_ARGS[@]}" \
+  <%- unless context.extra_container_args.to_s.strip.empty? -%>
+  <%= context.extra_container_args.to_s.strip %> \
+  <%- end -%>
+  "${IMAGE}"

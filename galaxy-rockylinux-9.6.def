@@ -1,0 +1,79 @@
+Bootstrap: localimage
+From: /home/dave/codex/singularity/rockylinux-9.6.sif
+
+%files
+    /home/dave/codex/singularity/start-galaxy.sh /usr/local/bin/start-galaxy
+
+%labels
+    Author Codex
+    OS "Rocky Linux 9.6"
+    Application "Galaxy"
+    GalaxyRelease "release_25.1"
+
+%post
+    set -eux
+
+    dnf -y install \
+        bzip2 \
+        findutils \
+        gcc \
+        gcc-c++ \
+        git \
+        gzip \
+        make \
+        patch \
+        python3 \
+        python3-devel \
+        python3-pip \
+        rsync \
+        sqlite \
+        tar \
+        unzip \
+        which
+    dnf clean all
+
+    chmod 0755 /usr/local/bin/start-galaxy
+
+    git clone --depth 1 --branch release_25.1 https://github.com/galaxyproject/galaxy.git /opt/galaxy
+    cp /opt/galaxy/tool-data/shared/ucsc/builds.txt.sample /opt/galaxy/tool-data/shared/ucsc/builds.txt
+    cp /opt/galaxy/tool-data/shared/ucsc/manual_builds.txt.sample /opt/galaxy/tool-data/shared/ucsc/manual_builds.txt
+    cd /opt/galaxy
+    export GALAXY_VIRTUAL_ENV=/opt/galaxy/.venv
+    sh ./scripts/common_startup.sh --skip-samples --skip-client-build
+    . /opt/galaxy/.venv/bin/activate
+    corepack enable yarn
+    yarn install --network-timeout 300000 --check-files
+    yarn run stage
+
+%environment
+    export GALAXY_ROOT=/opt/galaxy
+    export GALAXY_RUNTIME_ROOT=/tmp/galaxy
+    export GALAXY_VIRTUAL_ENV=/opt/galaxy/.venv
+    export GALAXY_CONFIG_FILE=/tmp/galaxy/config/galaxy.yml
+    export GALAXY_CONFIG_HOST=0.0.0.0
+    export GALAXY_CONFIG_PORT=8080
+    export GALAXY_SKIP_CLIENT_BUILD=1
+
+%runscript
+    exec /usr/local/bin/start-galaxy "$@"
+
+%test
+    set -eux
+    . /etc/os-release
+    test "$ID" = "rocky"
+    test "$VERSION_ID" = "9.6"
+    test -x /usr/local/bin/start-galaxy
+    test -f /opt/galaxy/run.sh
+    test -f /opt/galaxy/lib/galaxy/version.py
+
+%help
+    Rocky Linux 9.6 image with Galaxy source code from the official
+    galaxyproject/galaxy repository, branch release_25.1.
+
+    Default runtime behavior:
+    - Galaxy code lives in /opt/galaxy
+    - Writable state defaults to /tmp/galaxy
+    - The server listens on 0.0.0.0:8080
+
+    Example:
+    apptainer run --bind /path/to/galaxy-data:/tmp/galaxy galaxy-rockylinux-9.6.sif

@@ -1,0 +1,8 @@
+---
+name: Galaxy
+category: Interactive Apps
+subcategory: Servers
+role: batch_connect
+description: |
+  Launch the Galaxy bioinformatics platform inside the bundled Singularity or
+  Apptainer image on SeaWulf through Open OnDemand.

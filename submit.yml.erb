@@ -1,0 +1,13 @@
+---
+batch_connect:
+  template: "basic"
+
+script:
+  queue_name: <%= custom_queue %>
+  <% unless email.blank? %>
+  email: <%= email %>
+  <% end %>
+  native:
+    - "--ntasks=<%= num_cores.to_s.strip %>"
+    - "--cpus-per-task=1"
+    - "--mem=<%= custom_mem.to_s.strip %>"

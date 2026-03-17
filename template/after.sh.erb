@@ -1,0 +1,10 @@
+echo "$(date): Waiting for Galaxy to open port ${port}..."
+
+if wait_until_port_used "${host}:${port}" 180; then
+  echo "$(date): Galaxy is listening on port ${port}"
+else
+  echo "$(date): Timed out waiting for Galaxy to open port ${port}"
+  clean_up 1
+fi
+
+sleep 2

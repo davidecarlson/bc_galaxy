@@ -1,0 +1,59 @@
+---
+cluster: "seawulf_cluster"
+
+attributes:
+  galaxy_extra_file_sources:
+    widget: "select"
+    label: "Additional Galaxy Data Sources"
+    help: "Optional extra SeaWulf locations to expose in Galaxy's server-side file browser."
+    options:
+      - [ "Home only", "home_only" ]
+      - [ "Home + scratch", "home_scratch" ]
+      - [ "Home + projects", "home_projects" ]
+      - [ "Home + scratch + projects", "home_scratch_projects" ]
+    value: "home_only"
+  galaxy_data_dir:
+    widget: "text_field"
+    label: "Galaxy Data Directory"
+    help: "Writable directory for Galaxy state, config, logs, and the SQLite database. Leave blank to use $HOME/ondemand/data/galaxy."
+  num_cores:
+    widget: "number_field"
+    label: "Number of cores"
+    value: 1
+    help: |
+      Number of CPU cores requested. Default is 1 core.
+    min: 1
+    max: 96
+    step: 1
+  custom_mem:
+    label: "Memory"
+    help: "Requested memory, for example 4G or 100G."
+    widget: "text_field"
+    value: "4G"
+  custom_queue:
+    label: "Queue"
+    help: "Select a SeaWulf queue."
+    widget: "select"
+    options:
+      - [ "short-40core-shared", "short-40core-shared" ]
+      - [ "long-40core-shared", "long-40core-shared" ]
+      - [ "extended-40core-shared", "extended-40core-shared" ]
+      - [ "short-96core-shared", "short-96core-shared" ]
+      - [ "long-96core-shared", "long-96core-shared" ]
+      - [ "extended-96core-shared", "extended-96core-shared" ]
+  extra_container_args:
+    widget: "text_field"
+    label: "Extra Container Args"
+    help: "Optional extra arguments passed to singularity/apptainer run."
+    value: ""
+
+form:
+  - galaxy_extra_file_sources
+  - galaxy_data_dir
+  - custom_queue
+  - bc_num_hours
+  - num_cores
+  - custom_mem
+  - extra_container_args
+  - email
+  - bc_email_on_started

@@ -1,0 +1,5 @@
+# Export the module function if it exists
+[[ $(type -t module) == "function" ]] && export -f module
+
+export host="${host}"
+export port="$(find_port "${host}")"
