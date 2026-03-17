@@ -145,7 +145,7 @@ Place these files under `/gpfs/software/galaxy/config`.
 - example generator:
 
 ```bash
-openssl rand -hex 32 > /gpfs/software/galaxy/config/id_secret
+openssl rand -hex 28 > /gpfs/software/galaxy/config/id_secret
 chmod 600 /gpfs/software/galaxy/config/id_secret
 ```
 

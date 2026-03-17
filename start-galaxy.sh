@@ -117,6 +117,11 @@ if [ -z "$GALAXY_ID_SECRET" ]; then
     echo "Galaxy id_secret file is empty: $GALAXY_ID_SECRET_FILE" >&2
     exit 1
 fi
+GALAXY_ID_SECRET_LENGTH=$(printf '%s' "$GALAXY_ID_SECRET" | wc -c | tr -d ' ')
+if [ "$GALAXY_ID_SECRET_LENGTH" -gt 56 ]; then
+    echo "Galaxy id_secret is too long (${GALAXY_ID_SECRET_LENGTH} bytes). Galaxy requires 4-56 bytes." >&2
+    exit 1
+fi
 
 # Rebuild the generated config on each start so OOD-assigned host/port changes
 # are reflected even when the runtime directory is persistent across sessions.
