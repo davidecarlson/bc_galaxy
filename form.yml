@@ -16,6 +16,14 @@ attributes:
     widget: "text_field"
     label: "Galaxy Data Directory"
     help: "Writable directory for Galaxy state, config, logs, and the SQLite database. Leave blank to use $HOME/ondemand/data/galaxy."
+  galaxy_email:
+    widget: "text_field"
+    label: "Galaxy Email Address"
+    help: "Email address to use for the Galaxy account."
+  galaxy_password:
+    widget: "password_field"
+    label: "Galaxy Password"
+    help: "Optional Galaxy password. Leave blank to auto-generate and save it in credentials.txt in the Galaxy data directory."
   num_cores:
     widget: "number_field"
     label: "Number of cores"
@@ -41,19 +49,14 @@ attributes:
       - [ "short-96core-shared", "short-96core-shared" ]
       - [ "long-96core-shared", "long-96core-shared" ]
       - [ "extended-96core-shared", "extended-96core-shared" ]
-  extra_container_args:
-    widget: "text_field"
-    label: "Extra Container Args"
-    help: "Optional extra arguments passed to singularity/apptainer run."
-    value: ""
-
 form:
   - galaxy_extra_file_sources
   - galaxy_data_dir
+  - galaxy_email
+  - galaxy_password
   - custom_queue
   - bc_num_hours
   - num_cores
   - custom_mem
-  - extra_container_args
   - email
   - bc_email_on_started

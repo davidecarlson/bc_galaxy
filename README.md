@@ -12,7 +12,7 @@ settings.
 - Launches Galaxy as an Open OnDemand interactive web app.
 - Runs Galaxy from a shared container image.
 - Stores each user's Galaxy state in a user-owned writable directory.
-- Uses shared admin-managed locations for:
+- Uses shared admin-managed, read-only-at-runtime locations for:
   - Tool panel configuration
   - Tool Shed installs
   - Tool data
@@ -29,7 +29,7 @@ settings.
 - `template/before.sh.erb`: reserves the OOD proxy port
 - `template/script.sh.erb`: cluster-side launch script
 - `template/after.sh.erb`: waits for Galaxy to become reachable
-- `start-galaxy.sh`: in-container Galaxy bootstrap
+- `start-galaxy.sh`: reference Galaxy bootstrap script used by the launcher
 - `view.html.erb`: session page button
 - `galaxy-rockylinux-9.6.def`: container definition file
 
@@ -99,6 +99,7 @@ Recommended ownership and permissions:
 - writable by admins only
 - readable by all users on compute nodes
 - image file readable by all users
+- normal user launches should not need to create or modify anything here
 
 ## Minimal Shared Config Files
 
@@ -134,7 +135,7 @@ Place these files under `/gpfs/software/galaxy/config`.
 ```xml
 <?xml version="1.0"?>
 <dependency_resolvers>
-    <conda auto_init="true" auto_install="true" prefix="/srv/galaxy/conda" />
+    <conda auto_init="true" auto_install="false" prefix="/srv/galaxy/conda" />
 </dependency_resolvers>
 ```
 
@@ -176,7 +177,20 @@ chmod 600 /gpfs/software/galaxy/config/id_secret
 
 ## First-Run Admin Workflow
 
-Use one admin-owned Galaxy session to install shared tools from the Tool Shed.
+Populate shared tools and Conda environments as an admin before broad rollout.
+
+For normal user launches, the shared `/gpfs/software/galaxy` tree should be
+readable but not writable. This app now validates that the shared Conda prefix
+already contains:
+
+- `envs/`
+- `pkgs/`
+- `bin/activate`
+
+If those are missing, create them as an admin first.
+
+Use one admin-owned Galaxy session, or a separate admin-only copy of this app
+with tool installation enabled, to install shared tools from the Tool Shed.
 
 Suggested smoke test:
 
@@ -234,15 +248,15 @@ The launcher exports:
 - `CONDA_ENVS_PATH=/srv/galaxy/conda/envs`
 - `CONDA_PKGS_DIRS=/srv/galaxy/conda/pkgs`
 
-It also symlinks the shared prefix's `bin`, `condabin`, and `etc` directories
-to the site Anaconda install so Galaxy can activate tool environments via:
+The shared prefix must already be initialized by an admin so Galaxy can
+activate tool environments via:
 
 ```text
 /srv/galaxy/conda/bin/activate
 ```
 
 This is important because Galaxy uses the configured `conda_prefix` both for
-environment creation and for activation during job execution.
+environment discovery and for activation during job execution.
 
 ## Site-Specific Settings To Review
 
@@ -253,7 +267,7 @@ Before reusing this app on another cluster, review:
 - [`template/script.sh.erb`](/gpfs/home/decarlson/ondemand/dev/galaxy/template/script.sh.erb)
   shared filesystem paths, Anaconda path, image path, and module name
 - [`start-galaxy.sh`](/gpfs/home/decarlson/ondemand/dev/galaxy/start-galaxy.sh)
-  `admin_users` and `id_secret`
+  `GALAXY_ADMIN_USERS` and `id_secret`
 
 ## Security Notes
 
@@ -262,9 +276,12 @@ Two settings should be reviewed before treating this as production-ready:
 - `id_secret` is now read from
   `/gpfs/software/galaxy/config/id_secret` and should be a persistent random
   secret managed outside the repo.
-- `admin_users` in
+- `GALAXY_ADMIN_USERS` in
   [`start-galaxy.sh`](/gpfs/home/decarlson/ondemand/dev/galaxy/start-galaxy.sh)
   should be set for your site.
+- `Extra Container Args` is appropriate for admins and debugging, but many
+  sites remove it before exposing the app to all users because it allows
+  arbitrary container runtime flags.
 
 Also review whether exposing all of `/gpfs/projects` is appropriate for your
 cluster. You may want to narrow that to specific project roots.
@@ -275,7 +292,7 @@ If Tool Shed installs create Conda environments in the wrong place:
 
 - confirm `CONDA_ENVS_PATH` and `CONDA_PKGS_DIRS` are set in the launcher
 - confirm `/gpfs/software/galaxy/conda` is writable by the installing admin
-- confirm the shared prefix contains `bin/activate`
+- confirm the shared prefix contains `envs/`, `pkgs/`, and `bin/activate`
 
 If Galaxy jobs run single-threaded:
 

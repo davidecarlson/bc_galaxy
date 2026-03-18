@@ -30,6 +30,13 @@ export GALAXY_CONFIG_HOST="${GALAXY_CONFIG_HOST:-0.0.0.0}"
 export GALAXY_CONFIG_PORT="${GALAXY_CONFIG_PORT:-8080}"
 export GALAXY_URL_PREFIX="${GALAXY_URL_PREFIX:-/}"
 export GALAXY_SKIP_CLIENT_BUILD="${GALAXY_SKIP_CLIENT_BUILD:-1}"
+export GALAXY_ADMIN_USERS="${GALAXY_ADMIN_USERS:-}"
+export GALAXY_SMTP_SERVER="${GALAXY_SMTP_SERVER:-}"
+export GALAXY_SMTP_USERNAME="${GALAXY_SMTP_USERNAME:-}"
+export GALAXY_SMTP_PASSWORD="${GALAXY_SMTP_PASSWORD:-}"
+export GALAXY_SMTP_SSL="${GALAXY_SMTP_SSL:-false}"
+export GALAXY_EMAIL_FROM="${GALAXY_EMAIL_FROM:-}"
+export GALAXY_ERROR_EMAIL_TO="${GALAXY_ERROR_EMAIL_TO:-}"
 
 mkdir -p \
     "$GALAXY_RUNTIME_ROOT/config" \
@@ -97,14 +104,25 @@ EOF
 fi
 
 if [ "$GALAXY_ENABLE_PROJECTS_FILE_SOURCE" = "true" ]; then
-    cat >>"$GALAXY_FILE_SOURCES_CONFIG_FILE" <<EOF
-- id: seawulf_projects
-  label: Projects
-  doc: SeaWulf project directories
-  type: posix
-  root: "/gpfs/projects"
+    if [ -d /gpfs/projects ]; then
+        for project_dir in /gpfs/projects/*; do
+            [ -d "$project_dir" ] || continue
+            [ -r "$project_dir" ] || continue
+            [ -x "$project_dir" ] || continue
+
+            project_name=$(basename "$project_dir")
+            project_id=$(printf '%s' "$project_name" | tr -c '[:alnum:]' '_')
+
+            cat >>"$GALAXY_FILE_SOURCES_CONFIG_FILE" <<EOF
+- id: seawulf_project_${project_id}
+  label: "Project: ${project_name}"
+  doc: "SeaWulf project directory"
+  type: "posix"
+  root: "${project_dir}"
   writable: false
 EOF
+        done
+    fi
 fi
 
 if [ ! -r "$GALAXY_ID_SECRET_FILE" ]; then
@@ -128,8 +146,8 @@ fi
 cat >"$GALAXY_CONFIG_FILE" <<EOF
 galaxy:
   brand: "Galaxy"
-  admin_users: "david.carlson@stonybrook.edu"
-  allow_user_creation: true
+  admin_users: "${GALAXY_ADMIN_USERS}"
+  allow_local_account_creation: true
   user_activation_on: false
   id_secret: "${GALAXY_ID_SECRET}"
   root: "${GALAXY_ROOT_DIR}"
@@ -155,6 +173,43 @@ galaxy:
   conda_auto_init: ${GALAXY_CONDA_AUTO_INIT}
   conda_auto_install: ${GALAXY_CONDA_AUTO_INSTALL}
   conda_exec: "${GALAXY_CONDA_EXEC}"
+EOF
+
+if [ -n "$GALAXY_SMTP_SERVER" ]; then
+    cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  smtp_server: "${GALAXY_SMTP_SERVER}"
+EOF
+fi
+
+if [ -n "$GALAXY_SMTP_USERNAME" ]; then
+    cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  smtp_username: "${GALAXY_SMTP_USERNAME}"
+EOF
+fi
+
+if [ -n "$GALAXY_SMTP_PASSWORD" ]; then
+    cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  smtp_password: "${GALAXY_SMTP_PASSWORD}"
+EOF
+fi
+
+cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  smtp_ssl: ${GALAXY_SMTP_SSL}
+EOF
+
+if [ -n "$GALAXY_EMAIL_FROM" ]; then
+    cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  email_from: "${GALAXY_EMAIL_FROM}"
+EOF
+fi
+
+if [ -n "$GALAXY_ERROR_EMAIL_TO" ]; then
+    cat >>"$GALAXY_CONFIG_FILE" <<EOF
+  error_email_to: "${GALAXY_ERROR_EMAIL_TO}"
+EOF
+fi
+
+cat >>"$GALAXY_CONFIG_FILE" <<EOF
 gravity:
   galaxy_root: "${GALAXY_ROOT_DIR}"
   virtualenv: "${GALAXY_VIRTUAL_ENV}"
