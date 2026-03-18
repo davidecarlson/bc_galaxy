@@ -7,6 +7,7 @@ export GALAXY_PYTHON="${GALAXY_PYTHON:-/usr/bin/python3}"
 export GALAXY_RUNTIME_ROOT="${GALAXY_RUNTIME_ROOT:-/tmp/galaxy}"
 export GALAXY_VIRTUAL_ENV="${GALAXY_VIRTUAL_ENV:-/opt/galaxy/.venv}"
 export GALAXY_CONFIG_FILE="${GALAXY_CONFIG_FILE:-$GALAXY_RUNTIME_ROOT/config/galaxy.yml}"
+export GALAXY_JOB_CONFIG_FILE="${GALAXY_JOB_CONFIG_FILE:-$GALAXY_RUNTIME_ROOT/config/job_conf.xml}"
 export GALAXY_LOG_DIR="${GALAXY_LOG_DIR:-$GALAXY_RUNTIME_ROOT/log}"
 export GALAXY_PID_DIR="${GALAXY_PID_DIR:-$GALAXY_RUNTIME_ROOT/pids}"
 export GALAXY_GRAVITY_STATE_DIR="${GALAXY_GRAVITY_STATE_DIR:-$GALAXY_RUNTIME_ROOT/data/gravity}"
@@ -37,6 +38,9 @@ export GALAXY_SMTP_PASSWORD="${GALAXY_SMTP_PASSWORD:-}"
 export GALAXY_SMTP_SSL="${GALAXY_SMTP_SSL:-false}"
 export GALAXY_EMAIL_FROM="${GALAXY_EMAIL_FROM:-}"
 export GALAXY_ERROR_EMAIL_TO="${GALAXY_ERROR_EMAIL_TO:-}"
+export GALAXY_SLOTS="${GALAXY_SLOTS:-1}"
+export GALAXY_MEMORY_MB="${GALAXY_MEMORY_MB:-1024}"
+export TMPDIR="${TMPDIR:-$GALAXY_RUNTIME_ROOT/data/tmp}"
 
 mkdir -p \
     "$GALAXY_RUNTIME_ROOT/config" \
@@ -103,6 +107,25 @@ if [ "$GALAXY_ENABLE_SCRATCH_FILE_SOURCE" = "true" ]; then
 EOF
 fi
 
+cat >"$GALAXY_JOB_CONFIG_FILE" <<EOF
+<?xml version="1.0"?>
+<job_conf>
+    <plugins>
+        <plugin id="local" type="runner" load="galaxy.jobs.runners.local:LocalJobRunner" workers="4" />
+    </plugins>
+    <handlers>
+        <handler id="main" />
+    </handlers>
+    <destinations default="local">
+        <destination id="local" runner="local">
+            <env id="GALAXY_SLOTS">${GALAXY_SLOTS}</env>
+            <env id="GALAXY_MEMORY_MB">${GALAXY_MEMORY_MB}</env>
+            <env id="TMPDIR">${TMPDIR}</env>
+        </destination>
+    </destinations>
+</job_conf>
+EOF
+
 if [ "$GALAXY_ENABLE_PROJECTS_FILE_SOURCE" = "true" ]; then
     if [ -d /gpfs/projects ]; then
         for project_dir in /gpfs/projects/*; do
@@ -155,6 +178,7 @@ galaxy:
   data_dir: "${GALAXY_RUNTIME_ROOT}/data"
   host: "${GALAXY_CONFIG_HOST}"
   port: ${GALAXY_CONFIG_PORT}
+  job_config_file: "${GALAXY_JOB_CONFIG_FILE}"
   database_connection: "sqlite:///${GALAXY_RUNTIME_ROOT}/data/galaxy.sqlite?isolation_level=IMMEDIATE"
   file_path: "${GALAXY_RUNTIME_ROOT}/data/files"
   new_file_path: "${GALAXY_RUNTIME_ROOT}/data/tmp"
