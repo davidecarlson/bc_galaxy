@@ -68,13 +68,11 @@ export GIT_CONFIG_VALUE_0="$GALAXY_ROOT"
 # Reused runtime directories can contain stale pid files from prior sessions.
 rm -f "$GALAXY_RUNTIME_ROOT"/pids/*.pid
 
-if [ ! -f "$GALAXY_SHED_TOOL_CONFIG_FILE" ]; then
-    cat >"$GALAXY_SHED_TOOL_CONFIG_FILE" <<EOF
+cat >"$GALAXY_SHED_TOOL_CONFIG_FILE" <<EOF
 <?xml version="1.0"?>
 <toolbox tool_path="${GALAXY_SHED_TOOL_PATH}">
 </toolbox>
 EOF
-fi
 
 GALAXY_PRIMARY_TOOL_CONFIG_FILE=$(printf '%s' "$GALAXY_TOOL_CONFIG_FILE" | cut -d, -f1)
 if [ ! -f "$GALAXY_PRIMARY_TOOL_CONFIG_FILE" ]; then

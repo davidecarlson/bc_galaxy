@@ -170,13 +170,11 @@ export GIT_CONFIG_VALUE_0="$GALAXY_ROOT"
 
 rm -f "$GALAXY_RUNTIME_ROOT"/pids/*.pid
 
-if [ ! -f "$GALAXY_SHED_TOOL_CONFIG_FILE" ]; then
-    cat >"$GALAXY_SHED_TOOL_CONFIG_FILE" <<EOF_INNER
+cat >"$GALAXY_SHED_TOOL_CONFIG_FILE" <<EOF_INNER
 <?xml version="1.0"?>
 <toolbox tool_path="${GALAXY_SHED_TOOL_PATH}">
 </toolbox>
 EOF_INNER
-fi
 
 GALAXY_PRIMARY_TOOL_CONFIG_FILE=$(printf '%s' "$GALAXY_TOOL_CONFIG_FILE" | cut -d, -f1)
 if [ ! -f "$GALAXY_PRIMARY_TOOL_CONFIG_FILE" ]; then

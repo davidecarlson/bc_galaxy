@@ -32,6 +32,8 @@ settings.
 - `start-galaxy.sh`: reference Galaxy bootstrap script used by the launcher
 - `view.html.erb`: session page button
 - `galaxy-rockylinux-9.6.def`: container definition file
+- `scripts/generate_tool_conf.py`: generate a shared `tool_conf.xml` from installed `shed_tools`
+- `tool_sections.json`: section mapping used by the tool-conf generator
 
 ## Runtime Model
 
@@ -202,6 +204,41 @@ Suggested smoke test:
 4. Run a small test job.
 5. Confirm a normal user can launch a separate session and use the installed
    tool without reinstalling it.
+
+## Shared Tool Catalog Workflow
+
+This deployment uses per-user Galaxy databases, so Tool Shed installs performed
+in one session are not automatically visible in every other user's tool panel.
+For a shared HPC deployment, a practical compromise is to generate a curated
+shared `tool_conf.xml` from the installed `shed_tools` tree.
+
+This repo includes:
+
+- [`scripts/generate_tool_conf.py`](/gpfs/home/decarlson/ondemand/dev/galaxy/scripts/generate_tool_conf.py)
+  scans `/gpfs/software/galaxy/shed_tools`, filters for real Galaxy tool XML
+  files, and emits a shared `tool_conf.xml`
+- [`tool_sections.json`](/gpfs/home/decarlson/ondemand/dev/galaxy/tool_sections.json)
+  defines named sections such as `Shared Assembly Tools` and `Shared RNA-Seq Tools`
+
+Example:
+
+```bash
+cd /gpfs/home/decarlson/ondemand/dev/galaxy
+python3 scripts/generate_tool_conf.py \
+  --section-config tool_sections.json \
+  --output /gpfs/software/galaxy/config/tool_conf.xml
+```
+
+By default, tools whose repository names are not listed in
+`tool_sections.json` are emitted into a fallback `Shared Other Tools` section.
+Use `--skip-uncategorized` if you want to publish only explicitly categorized
+tools.
+
+When new Tool Shed repositories are installed:
+
+1. update `tool_sections.json` if you want them grouped into a specific section
+2. rerun the generator
+3. relaunch Galaxy sessions so the updated toolbox is loaded
 
 ## User-Facing OOD Options
 

@@ -1,0 +1,84 @@
+{
+  "sections": [
+    {
+      "id": "shared_assembly",
+      "name": "Assembly Tools",
+      "repos": [
+        "canu",
+        "hifiasm"
+      ]
+    },
+    {
+      "id": "shared_rnaseq",
+      "name": "RNA-Seq Tools",
+      "repos": [
+        "trinity",
+        "salmon",
+        "kallisto_quant",
+        "rgrnastar",
+        "deseq2"
+      ]
+    },
+    {
+      "id": "shared_similarity",
+      "name": "Sequence Similarity Search",
+      "repos": [
+        "ncbi_blast_plus"
+      ]
+    },
+    {
+      "id": "shared_qc_trimming",
+      "name": "Read QC and Trimming",
+      "repos": [
+        "fastqc",
+        "multiqc",
+        "fastp",
+        "cutadapt",
+        "trim_galore",
+        "trimmomatic",
+        "fastq_pair"
+      ]
+    },
+    {
+      "id": "shared_alignment",
+      "name": "Alignment and Mapping",
+      "repos": [
+        "bwa",
+        "bowtie2",
+        "minimap2"
+      ]
+    },
+    {
+      "id": "shared_bam_utils",
+      "name": "BAM and Alignment Utilities",
+      "repos": [
+        "picard",
+        "sam_to_bam",
+        "samtools_sort",
+        "samtools_stats",
+        "deeptools_bam_coverage"
+      ]
+    },
+    {
+      "id": "shared_interval",
+      "name": "Genome and Interval Analysis",
+      "repos": [
+        "bedtools"
+      ]
+    },
+    {
+      "id": "shared_annotation",
+      "name": "Annotation and Repeat Analysis",
+      "repos": [
+        "repeat_masker",
+        "repeatmodeler",
+        "braker3",
+        "busco"
+      ]
+    }
+  ],
+  "default_section": {
+    "id": "shared_other",
+    "name": "Other Tools"
+  }
+}
