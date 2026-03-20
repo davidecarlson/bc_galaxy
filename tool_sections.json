@@ -16,7 +16,8 @@
         "salmon",
         "kallisto_quant",
         "rgrnastar",
-        "deseq2"
+        "deseq2",
+        "hisat2"
       ]
     },
     {
@@ -46,6 +47,13 @@
         "bwa",
         "bowtie2",
         "minimap2"
+      ]
+    },
+    {
+      "id": "shared_variant",
+      "name": "Variant Calling",
+      "repos": [
+        "freebayes"
       ]
     },
     {
