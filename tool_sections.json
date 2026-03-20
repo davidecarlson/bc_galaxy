@@ -53,7 +53,11 @@
       "id": "shared_variant",
       "name": "Variant Calling",
       "repos": [
-        "freebayes"
+        "freebayes",
+        "bcftools_mpileup",
+        "bcftools_call",
+        "bcftools_view",
+        "bcftools_annotate"
       ]
     },
     {
@@ -64,7 +68,9 @@
         "sam_to_bam",
         "samtools_sort",
         "samtools_stats",
-        "deeptools_bam_coverage"
+        "deeptools_bam_coverage",
+        "samtools_flagstat",
+        "samtools_idxstats"
       ]
     },
     {
