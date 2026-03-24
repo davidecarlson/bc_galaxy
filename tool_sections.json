@@ -5,7 +5,11 @@
       "name": "Assembly Tools",
       "repos": [
         "canu",
-        "hifiasm"
+        "hifiasm",
+        "flye",
+        "quast",
+        "unicycler",
+        "spades"
       ]
     },
     {
@@ -24,7 +28,8 @@
       "id": "shared_similarity",
       "name": "Sequence Similarity Search",
       "repos": [
-        "ncbi_blast_plus"
+        "ncbi_blast_plus",
+        "diamond"
       ]
     },
     {
@@ -68,9 +73,18 @@
         "sam_to_bam",
         "samtools_sort",
         "samtools_stats",
-        "deeptools_bam_coverage",
         "samtools_flagstat",
         "samtools_idxstats"
+      ]
+    },
+    {
+      "id": "shared_chipseq",
+      "name": "ChIP-Seq and Peak Calling",
+      "repos": [
+        "macs",
+        "sicer",
+        "deeptools_bam_coverage",
+        "deeptools_plot_pca"
       ]
     },
     {
